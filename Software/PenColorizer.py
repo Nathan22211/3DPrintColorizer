@@ -1,7 +1,31 @@
 import re #To perform the search and replace.
 
-from ..Script import Script
+try:
+    from ..Script import Script
+    runsStandalone = False
+except:
+    from typing import Optional, Any, Dict, TYPE_CHECKING, List
+    import collections
+    import json
+    import sys
 
+    class Script(object):
+        def injectSettingData(self, jsonString):
+            self._settingObj = json.loads(jsonString)
+
+        def getSettingDataString(self):
+            return "";
+
+        def getSettingValueByKey(self, key: str) -> Any:
+            try:
+                return self._settingsObj[key]
+            except:
+                pass
+            if not '_defaultSettingsObj' in dir(self):
+                self._defaultSettingObj = json.loads(self.getSettingDataString())
+            return self._defaultSettingObj["settings"][key]["default_value"]
+
+    runsStandalone = True
 
 class PenColorizer(Script):
     """Performs a search-and-replace on all g-code.
@@ -22,42 +46,42 @@ class PenColorizer(Script):
                     "label": "Pen X Offset",
                     "description": "Offset of your pen in X direction",
                     "type": "float",
-                    "default_value": 36.1
+                    "default_value": 0.0
                 },
                 "PenYOffset":
                 {
                     "label": "Pen Y Offset",
                     "description": "Offset of your pen in Y direction",
                     "type": "float",
-                    "default_value": 45.8
+                    "default_value": 0.0
                 },
                 "PenZOffset":
                 {
                     "label": "Pen Z Offset",
                     "description": "Offset of your pen in Z direction",
                     "type": "float",
-                    "default_value": 3.2
+                    "default_value": 0.0
                 },
                 "FirstPenXPosition":
                 {
                     "label": "First Pen X Position",
                     "description": "X position for holding the first pen in the pen rack",
                     "type": "float",
-                    "default_value": 28.0
+                    "default_value": 0.0
                 },
                 "FirstPenZPosition":
                 {
                     "label": "First Pen Z Position",
                     "description": "Z position for holding the first pen in the pen rack",
                     "type": "float",
-                    "default_value": 238.0
+                    "default_value": 0.0
                 },
                 "ExtraRetraction":
                 {
                     "label": "Retraction during painting",
                     "description": "Extra amount of retraction during painting",
                     "type": "float",
-                    "default_value": 5.5
+                    "default_value": 0.2
                 },
                 "Interlace":
                 {
@@ -74,23 +98,25 @@ class PenColorizer(Script):
         penoffset = float(int(pen / 2)) * 68.0
         
         if penside == 0:
-            getlines = [";Get pen " + str(pen),
-                        "G0 F5000 ; set speed fast",
-                        "G0 X" + str(self.penstartx + penoffset) + " Z" + str(self.penstarty - 152.0) + " ;go under pen",
-                        "G0 F2000 ; set speed slow",
-                        "G0 X" + str(self.penstartx + penoffset) + " Z" + str(self.penstarty) + " ; lift pen",
-                        "G0 X" + str(self.penstartx + 20.5 + penoffset) + " Z" + str(self.penstarty) + " ; move pen right",
-                        "G0 F5000 ; set speed fast",
-                        "G0 X" + str(self.penstartx + 20.5 + penoffset) + " Z" + str(self.penstarty - 152.0) + " ; lower pen"]
+            getlines = ["T" + str(pen)] #change this to have it managed by macros
+                        #";Get pen " + str(pen),
+                        #"G0 F5000 ; set speed fast",
+                        #"G0 X" + str(self.penstartx + penoffset) + " Z" + str(self.penstarty - 152.0) + " ;go under pen",
+                        #"G0 F2000 ; set speed slow",
+                        #"G0 X" + str(self.penstartx + penoffset) + " Z" + str(self.penstarty) + " ; lift pen",
+                        #"G0 X" + str(self.penstartx + 20.5 + penoffset) + " Z" + str(self.penstarty) + " ; move pen right",
+                        #"G0 F5000 ; set speed fast",
+                        #"G0 X" + str(self.penstartx + 20.5 + penoffset) + " Z" + str(self.penstarty - 152.0) + " ; lower pen"]
         else:
-            getlines = [";Get pen " + str(pen),
-                        "G0 F5000 ; set speed fast",
-                        "G0 X" + str(self.penstartx + 41.0 + penoffset) + " Z" + str(self.penstarty - 152.0) + " ;go under pen",
-                        "G0 F2000 ; set speed slow",
-                        "G0 X" + str(self.penstartx + 41.0 + penoffset) + " Z" + str(self.penstarty) + " ; lift pen",
-                        "G0 X" + str(self.penstartx + 20.5 + penoffset) + " Z" + str(self.penstarty) + " ; move pen right",
-                        "G0 F5000 ; set speed fast",
-                        "G0 X" + str(self.penstartx + 20.5 + penoffset) + " Z" + str(self.penstarty - 152.0) + " ; lower pen"]
+            getlines = ["T" + str(pen)]
+                        #";Get pen " + str(pen),
+                        #"G0 F5000 ; set speed fast",
+                        #"G0 X" + str(self.penstartx + 41.0 + penoffset) + " Z" + str(self.penstarty - 152.0) + " ;go under pen",
+                        #"G0 F2000 ; set speed slow",
+                        #"G0 X" + str(self.penstartx + 41.0 + penoffset) + " Z" + str(self.penstarty) + " ; lift pen",
+                        #"G0 X" + str(self.penstartx + 20.5 + penoffset) + " Z" + str(self.penstarty) + " ; move pen right",
+                        #"G0 F5000 ; set speed fast",
+                        #"G0 X" + str(self.penstartx + 20.5 + penoffset) + " Z" + str(self.penstarty - 152.0) + " ; lower pen"]
         return getlines
         
     def putPen(self, pen):
@@ -98,23 +124,25 @@ class PenColorizer(Script):
         penoffset = float(int(pen / 2)) * 68.0
         
         if penside == 0:
-            putlines = [";put pen " + str(pen),
-                        "G0 F5000 ; set speed fast",
-                        "G0 X" + str(self.penstartx + 20.5 + penoffset) + " Z" + str(self.penstarty - 152.0) + " ; go under pen",
-                        "G0 X" + str(self.penstartx + 20.5 + penoffset) + " Z" + str(self.penstarty) + " ; lift pen",
-                        "G0 F2000 ; set speed slow",
-                        "G0 X" + str(self.penstartx + penoffset) + " Z" + str(self.penstarty) + " ; move pen left",
-                        "G0 X" + str(self.penstartx + penoffset) + " Z" + str(self.penstarty - 152.0) + " ; lower pen",
-                        "G0 F5000 ; set speed fast", ""]
+            putlines = [";macro managed"] #change to be managed by macros
+                        #";put pen " + str(pen),
+                        #"G0 F5000 ; set speed fast",
+                        #"G0 X" + str(self.penstartx + 20.5 + penoffset) + " Z" + str(self.penstarty - 152.0) + " ; go under pen",
+                        #"G0 X" + str(self.penstartx + 20.5 + penoffset) + " Z" + str(self.penstarty) + " ; lift pen",
+                        #"G0 F2000 ; set speed slow",
+                        #"G0 X" + str(self.penstartx + penoffset) + " Z" + str(self.penstarty) + " ; move pen left",
+                        #"G0 X" + str(self.penstartx + penoffset) + " Z" + str(self.penstarty - 152.0) + " ; lower pen",
+                        #"G0 F5000 ; set speed fast", ""]
         else:
-            putlines = [";put pen " + str(pen),
-                        "G0 F5000 ; set speed fast",
-                        "G0 X" + str(self.penstartx + 20.5 + penoffset) + " Z" + str(self.penstarty - 152.0) + " ; go under pen",
-                        "G0 X" + str(self.penstartx + 20.5 + penoffset) + " Z" + str(self.penstarty) + " ; lift pen",
-                        "G0 F2000 ; set speed slow",
-                        "G0 X" + str(self.penstartx + 41.0 + penoffset) + " Z" + str(self.penstarty) + " ; move pen left",
-                        "G0 X" + str(self.penstartx + 41.0 + penoffset) + " Z" + str(self.penstarty - 152.0) + " ; lower pen",
-                        "G0 F5000 ; set speed fast", ""]
+            putlines = [";macro managed"]
+                        #";put pen " + str(pen),
+                        #"G0 F5000 ; set speed fast",
+                        #"G0 X" + str(self.penstartx + 20.5 + penoffset) + " Z" + str(self.penstarty - 152.0) + " ; go under pen",
+                        #"G0 X" + str(self.penstartx + 20.5 + penoffset) + " Z" + str(self.penstarty) + " ; lift pen",
+                        #"G0 F2000 ; set speed slow",
+                        #"G0 X" + str(self.penstartx + 41.0 + penoffset) + " Z" + str(self.penstarty) + " ; move pen left",
+                        #"G0 X" + str(self.penstartx + 41.0 + penoffset) + " Z" + str(self.penstarty - 152.0) + " ; lower pen",
+                        #"G0 F5000 ; set speed fast", ""]
         return putlines
 
     def offset(self, gcode, zoffset):
@@ -258,7 +286,7 @@ class PenColorizer(Script):
                     if ";TYPE:PRIME-TOWER" in line:
                         isPrimeTower = True
                         isSkirt = False
-                    elif ";TYPE:SKIRT" in line or ";TYPE:SUPPORT-INTERFACE" in line or ";TYPE:FILL" in line:
+                    elif ";TYPE:SKIRT" in line or ";TYPE:SUPPORT" in line or ";TYPE:SUPPORT-INTERFACE" in line or ";TYPE:FILL" in line:
                         isSkirt = True
                         isPrimeTower = False
                     else:
@@ -334,11 +362,11 @@ class PenColorizer(Script):
                 
                 #filter out extruder heating commands
                 elif "M109" in line and isLayer:
-                    print("skip")
+                     newlines.append(";" + line)
                 elif "M104" in line and isLayer:
-                    print("skip") 
+                     newlines.append(";" + line)
                 elif "M105" in line and isLayer:
-                    print("skip")  
+                     newlines.append(";" + line)
                     
                 else:
                     newlines.append(line)
@@ -372,3 +400,94 @@ class PenColorizer(Script):
             data[layer_number] = result
 
         return data
+
+# run this if not executed via Cura
+if runsStandalone == True:
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Postprocess gcode file to add colors using pens.', exit_on_error=True)
+    parser.add_argument('-c', '--config', help='path to the config json file', required=True)
+    parser.add_argument('-i', '--input', help='path to the input gcode file', required=True)
+    parser.add_argument('-o', '--output', help='path to the output gcode file', required=False)
+
+    args = parser.parse_args()
+
+    configFilename = args.config
+    inputFilename = args.input
+    outputFilename = args.output
+
+    # create script instance
+    script = PenColorizer()
+
+    # read config
+    hasConfig = False
+    try:
+        print("Reading config from " + configFilename);
+        with open(configFilename, "r") as file:
+            script.injectSettingData(file.read())
+        hasConfig = True
+    except FileNotFoundError:
+        print("Config not found, falling back to defaults!")
+    except BaseException as e:
+        print("Error reading config: " + str(e))
+
+    if hasConfig == False:
+        print("### Defaults will most likely not work for your printer and can damage your machine! ###")
+        input("Press Enter to continue anyway...")
+
+    
+    # read input gcode file
+    print("Running script on " + inputFilename)
+    with open(inputFilename) as file:
+        lines = file.readlines()
+
+    layersLineBuffers = []
+    lineBuffer = []
+    for i in range(0, len(lines)):
+        line = lines[i]
+
+        # check if a (virtual) layer starts here
+        # virtual layers are the comment block at the beginning and the start gcode sequence
+        isLayerStart = line.startswith(";LAYER:") or line.startswith(";Generated with")
+        isLayerEnd = line.startswith(";TIME_ELAPSED")
+
+        if isLayerStart or isLayerEnd:
+            if isLayerEnd:
+                lineBuffer.append(line)
+            if len(lineBuffer) > 0:
+                layersLineBuffers.append(lineBuffer.copy())
+                lineBuffer.clear()
+
+        if not isLayerEnd:
+            lineBuffer.append(line)
+    
+    if len(lineBuffer) > 0:
+        layersLineBuffers.append(lineBuffer.copy())
+
+    # add comment stating this file was postprocessed
+    layersLineBuffers[0].insert(len(layersLineBuffers[0]), ";POSTPROCESSED\n")
+
+    # split fist line of last layer to its own layer so we conform with whatever cura does
+    lastLayerLineBuffer = layersLineBuffers[len(layersLineBuffers)-1].copy();
+    layersLineBuffers[len(layersLineBuffers)-1] = [lastLayerLineBuffer[0]]
+    lastLayerLineBuffer.remove(lastLayerLineBuffer[0])
+    layersLineBuffers.append(lastLayerLineBuffer)
+
+    # merge layer lines to string
+    layers = []
+    for i in range(0, len(layersLineBuffers)):
+        layers.append("".join(layersLineBuffers[i]))
+
+
+    # execute script
+    layers = script.execute(layers)
+
+
+    # write output gcode file
+    if outputFilename == None:
+        outputFilename = inputFilename.partition(".gcode")[0] + ".processed.gcode"
+
+    print("Writing processed file to " + outputFilename);
+    with open(outputFilename, "w") as file:
+        for i in range(0, len(layers)):
+            file.write(layers[i])
